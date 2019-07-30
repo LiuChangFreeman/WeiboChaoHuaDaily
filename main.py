@@ -6,10 +6,6 @@ from selenium.webdriver.chrome.options import Options
 import selenium.webdriver.support.ui as ui
 import requests
 from sys import version_info
-if version_info.major == 2:
-    import urlparse
-else:
-    from urllib.parse import urlparse
 import time
 import json
 import io
@@ -79,7 +75,12 @@ def resolve(card_group):
     for card in card_group:
         if card['card_type'] == 8:
             scheme = card['scheme']
-            query = urlparse.urlparse(scheme).query
+            if version_info.major == 2:
+                import urlparse
+                query = urlparse.urlparse(scheme).query
+            else:
+                from urllib.parse import urlparse
+                query = urlparse(scheme).query
             parmsList = query.split('&')
             containerid = ''
             for parm in parmsList:
@@ -284,6 +285,10 @@ def main():
     try:
         driver.close()
         win32process.TerminateProcess(chrome[0], 0)
+    except:
+        pass
+    #关闭残留进程
+    try:
         os.system("taskkill /IM chromedriver.exe /F")
         os.system("taskkill /IM chrome.exe /F")
     except:
