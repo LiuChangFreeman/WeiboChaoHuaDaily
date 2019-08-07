@@ -22,6 +22,8 @@ daily_vote=True
 #每日签到
 daily_sign=True
 
+#每日评论次数，5次得9经验+10积分，8次得9经验+16积分
+comment_count_max=5
 
 chrome_process=None
 chrome_path="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
@@ -106,7 +108,7 @@ def main():
     keys=["ALF","SUBP","SUB","SSOLoginState","SUHB"]
     wait = ui.WebDriverWait(driver, 10)
 
-    #每日评论5次
+    #每日评论多次
     if daily_comment:
         driver.get(url_weibo_comment_daily)
         comment_count=1
@@ -129,7 +131,7 @@ def main():
             except:
                 driver.refresh()
                 error_count += 1
-                if error_count>5:
+                if error_count>comment_count_max:
                     error_count = 1
                     break
 
@@ -167,7 +169,7 @@ def main():
             button_score.click()
             time.sleep(3)
             error_count += 1
-            if error_count > 5:
+            if error_count > comment_count_max:
                 error_count = 1
                 break
 
@@ -202,6 +204,7 @@ def main():
         else:
             chaohua_list = []
             # 从浏览器获取cookie
+            driver.get(url_super_index_vote)
             cookies = driver.get_cookies()
             cookie_temp = ""
             for item in cookies:
@@ -283,7 +286,7 @@ def main():
 
     # 关闭浏览器进程
     try:
-        driver.close()
+        driver.quit()
         win32process.TerminateProcess(chrome[0], 0)
     except:
         pass
