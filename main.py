@@ -13,22 +13,23 @@ import os
 import re
 import win32process
 
-#Chrome浏览器后台启动,有BUG
-chrome_hidden=False
-#每日评论
-daily_comment=True
-#每日打榜
-daily_vote=True
-#每日签到
+#是否每日评论
+daily_comment=False
+#是否每日打榜
+daily_vote=False
+#是否每日签到
 daily_sign=True
 
 #每日评论次数，5次得9经验+10积分，8次得9经验+16积分
-comment_count_max=5
+comment_count_max=8
+#失败最大尝试次数
+retry_count_max=3
 
 chrome_process=None
 chrome_path="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
 chrome_path_x64="C:/Program Files/Google/Chrome/Application/chrome.exe"
 filename_chaohua= "chaohua.json"
+cookie_keys_to_save = ["ALF", "SUBP", "SUB", "SSOLoginState", "SUHB"]
 
 #每日打榜的超话,必须是手机版链接
 url_super_index_vote="https://m.weibo.cn/p/1008082a98366b6a3546bd16e9da0571e34b84/super_index"
@@ -55,10 +56,7 @@ def launch_chrome():
     else:
         print(u"未找到Chrome安装目录")
         exit(-1)
-    if chrome_hidden:
-        chrome=win32process.CreateProcess(None,"{} --remote-debugging-port=9222  --headless".format(path_exec),None,None,0,0,None,None,win32process.STARTUPINFO())
-    else:
-        chrome=win32process.CreateProcess(None,"{} --remote-debugging-port=9222 ".format(path_exec),None,None,0,0,None,None,win32process.STARTUPINFO())
+    chrome=win32process.CreateProcess(None,"{} --remote-debugging-port=9222 ".format(path_exec),None,None,0,0,None,None,win32process.STARTUPINFO())
 
 def get_chaohua_list(cookie, sinceId):
     url = "https://m.weibo.cn/api/container/getIndex?containerid=100803_-_page_my_follow_super"
@@ -105,8 +103,9 @@ def main():
     chrome_options.add_experimental_option('debuggerAddress', '127.0.0.1:9222')
     driver = webdriver.Chrome(chrome_options=chrome_options)
     error_count = 1
-    keys=["ALF","SUBP","SUB","SSOLoginState","SUHB"]
     wait = ui.WebDriverWait(driver, 10)
+    driver.set_page_load_timeout(60)
+    driver.set_script_timeout(60)
 
     #每日评论多次
     if daily_comment:
@@ -126,7 +125,7 @@ def main():
                 button_send.click()
                 time.sleep(5)
                 comment_count+=1
-                if comment_count>5:
+                if comment_count>retry_count_max:
                     break
             except:
                 driver.refresh()
@@ -140,6 +139,9 @@ def main():
         #第一步，找到“打榜按钮”，点击进入打榜页面
         driver.get(url_super_index_vote)
         while True:
+            if error_count > retry_count_max:
+                error_count = 1
+                break
             try:
                 print(u"登入主页")
                 wait.until(lambda driver: driver.find_element_by_xpath(xpath_tab).is_displayed())
@@ -156,12 +158,12 @@ def main():
                 print(u"刷新，第{}次".format(error_count))
                 driver.refresh()
                 error_count += 1
-                if error_count>5:
-                    error_count = 1
-                    break
 
         #第二步，选择1积分
         while True:
+            if error_count > retry_count_max:
+                error_count = 1
+                break
             print(u"选择1积分")
             button_score=driver.find_element_by_xpath(xpath_score)
             if button_score.get_attribute("class")=="active":
@@ -169,9 +171,6 @@ def main():
             button_score.click()
             time.sleep(3)
             error_count += 1
-            if error_count > comment_count_max:
-                error_count = 1
-                break
 
         #第三步，点击“赠送”按钮，判断打榜是否成功、是否出现行为检测异常
         score_before=driver.find_element_by_xpath(xpath_score_count)
@@ -179,6 +178,9 @@ def main():
         score_before=re.findall(u"(?<=我的积分：).*",score_before)
         score_before=int(score_before[0])
         while True:
+            if error_count > retry_count_max:
+                error_count = 1
+                break
             try:
                 button_gift = driver.find_element_by_xpath(xpath_gift)
                 print(u"送积分")
@@ -192,6 +194,7 @@ def main():
                     break
                 else:
                     print(u"送积分未成功")
+                    error_count +=1
             except NoSuchElementException:
                 print(u"检测异常")
                 break
@@ -208,7 +211,7 @@ def main():
             cookies = driver.get_cookies()
             cookie_temp = ""
             for item in cookies:
-                if item["name"] in keys:
+                if item["name"] in cookie_keys_to_save:
                     cookie_temp += "{}={};".format(item["name"], item["value"])
             since_id = ""
             un_terminal = True
@@ -232,14 +235,16 @@ def main():
                     text = text.decode("utf-8")
                 fd.write(text)
 
-        #第一步,每个超话都签到
+        #每个超话都签到
         for item in chaohua_list:
             print("-------------------")
             print(u"准备签到{}" .format(item['title_sub']))
-
             button_sign=None
             text =""
             while True:
+                if error_count > retry_count_max:
+                    error_count = 1
+                    break
                 try:
                     driver.get("https://weibo.com/p/{}/super_index".format(item['containerid']))
                     time.sleep(3)
@@ -248,13 +253,13 @@ def main():
                     break
                 except NoSuchElementException:
                     error_count += 1
-                    if error_count > 5:
-                        error_count = 1
-                        break
             if text == u"已签到" or text == "" or button_sign==None:
                 print(u"跳过{}".format(item['title_sub']))
                 continue
             while True:
+                if error_count > retry_count_max:
+                    error_count = 1
+                    break
                 try:
                     print(u"点击")
                     button_sign.click()
@@ -265,21 +270,19 @@ def main():
                         print(u"点击成功")
                         break
                     else:
-                        print(u"点击失败")
+                        print(u"签到未成功")
+                        error_count += 1
                 except:
-                    print(u"点击失败")
+                    print(u"签到异常")
                     try:
                         alert = driver.find_element_by_class_name("W_layer_btn")
                         if alert:
                             if u"解除异常" in alert.text:
-                                print(u"出现异常")
+                                print(u"签到出现异常")
                                 break
                     except NoSuchElementException:
                         pass
                     error_count += 1
-                    if error_count > 5:
-                        error_count = 1
-                        break
             time.sleep(3)
             print("-------------------")
         print("-------------------")
