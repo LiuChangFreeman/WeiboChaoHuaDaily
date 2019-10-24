@@ -23,7 +23,7 @@ daily_sign=True
 #每日评论次数，5次得9经验+10积分，8次得9经验+16积分
 comment_count_max=8
 #失败最大尝试次数
-retry_count_max=3
+retry_count_max=5
 
 chrome_process=None
 chrome_path="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
@@ -125,12 +125,12 @@ def main():
                 button_send.click()
                 time.sleep(5)
                 comment_count+=1
-                if comment_count>retry_count_max:
+                if comment_count>comment_count_max:
                     break
             except:
                 driver.refresh()
                 error_count += 1
-                if error_count>comment_count_max:
+                if error_count>retry_count_max:
                     error_count = 1
                     break
 
