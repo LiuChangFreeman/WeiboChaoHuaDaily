@@ -14,9 +14,9 @@ import re
 import win32process
 
 #是否每日评论
-daily_comment=False
+daily_comment=True
 #是否每日打榜
-daily_vote=False
+daily_vote=True
 #是否每日签到
 daily_sign=True
 
@@ -247,11 +247,13 @@ def main():
                     break
                 try:
                     driver.get("https://weibo.com/p/{}/super_index".format(item['containerid']))
-                    time.sleep(3)
+                    time.sleep(5)
                     button_sign = driver.find_element_by_xpath(xpath_button)
                     text = button_sign.text
                     break
                 except NoSuchElementException:
+                    driver.refresh()
+                    time.sleep(10)
                     error_count += 1
             if text == u"已签到" or text == "" or button_sign==None:
                 print(u"跳过{}".format(item['title_sub']))
