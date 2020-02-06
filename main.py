@@ -23,7 +23,9 @@ daily_sign=True
 #每日评论次数，5次得9经验+10积分，8次得9经验+16积分
 comment_count_max=8
 #失败最大尝试次数
-retry_count_max=5
+retry_count_max=8
+#每日签到，签几轮
+daily_sign_count=3
 
 chrome_process=None
 chrome_path="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
@@ -34,7 +36,7 @@ cookie_keys_to_save = ["ALF", "SUBP", "SUB", "SSOLoginState", "SUHB"]
 #每日打榜的超话,必须是手机版链接
 url_super_index_vote="https://m.weibo.cn/p/1008082a98366b6a3546bd16e9da0571e34b84/super_index"
 xpath_button="//*[@id=\"Pl_Core_StuffHeader__1\"]/div/div[2]/div/div[3]/div/div[3]/a"
-xpath_tab="//*[@id=\"app\"]/div[1]/div[1]/div[2]/div[2]/div[1]/div/div/div/ul/li[2]/span"
+xpath_tab="//*[@id=\"app\"]/div[1]/div[1]/div[2]/div[2]/div[1]/div/div/div/ul/li[1]/span"
 xpath_vote="//*[@id=\"app\"]/div[1]/div[1]/div[3]/div/div/div[1]/div/div/div/div[3]/div"
 xpath_score="//*[@id=\"app\"]/div/div[1]/div/ul[1]/li[1]"
 xpath_gift="//*[@id=\"app\"]/div/div[2]/div[2]/span[2]"
@@ -201,93 +203,94 @@ def main():
 
     # 每日超话签到
     if daily_sign:
-        #第一步,获取超话列表
-        if os.path.exists(filename_chaohua):
-            chaohua_list =json.loads(open(filename_chaohua).read())
-        else:
-            chaohua_list = []
-            # 从浏览器获取cookie
-            driver.get(url_super_index_vote)
-            cookies = driver.get_cookies()
-            cookie_temp = ""
-            for item in cookies:
-                if item["name"] in cookie_keys_to_save:
-                    cookie_temp += "{}={};".format(item["name"], item["value"])
-            since_id = ""
-            un_terminal = True
-            while un_terminal:
-                response_json = get_chaohua_list(cookie_temp, since_id)
-                cardlist_info = response_json['data']['cardlistInfo']
-                card_group =[]
-                for group in response_json['data']['cards']:
-                    group_name=group["card_type_name"]
-                    if group_name=="my_topic_follow_super" or group_name=="my_topic_manage_super":
-                        card_group += group['card_group']
-                chaohua_list = chaohua_list + resolve(card_group)
-                if 'since_id' in cardlist_info:
-                    since_id = cardlist_info['since_id']
-                else:
-                    print(u"获取超级话题列表结束...准备开始签到")
-                    break
-            with io.open(filename_chaohua, "w", encoding="utf-8") as fd:
-                text=json.dumps(chaohua_list, indent=4)
-                if type(text) == str:
-                    text = text.decode("utf-8")
-                fd.write(text)
-
-        #每个超话都签到
-        for item in chaohua_list:
-            print("-------------------")
-            print(u"准备签到{}" .format(item['title_sub']))
-            button_sign=None
-            text =""
-            while True:
-                if error_count > retry_count_max:
-                    error_count = 1
-                    break
-                try:
-                    driver.get("https://weibo.com/p/{}/super_index".format(item['containerid']))
-                    time.sleep(5)
-                    button_sign = driver.find_element_by_xpath(xpath_button)
-                    text = button_sign.text
-                    break
-                except NoSuchElementException:
-                    driver.refresh()
-                    time.sleep(10)
-                    error_count += 1
-            if text == u"已签到" or text == "" or button_sign==None:
-                print(u"跳过{}".format(item['title_sub']))
-                continue
-            while True:
-                if error_count > retry_count_max:
-                    error_count = 1
-                    break
-                try:
-                    print(u"点击")
-                    button_sign.click()
-                    time.sleep(3)
-                    button_sign = driver.find_element_by_xpath(xpath_button)
-                    text = button_sign.text
-                    if text == u"已签到":
-                        print(u"点击成功")
-                        break
+        for i in range(daily_sign_count):#签n轮
+            #第一步,获取超话列表
+            if os.path.exists(filename_chaohua):
+                chaohua_list =json.loads(open(filename_chaohua).read())
+            else:
+                chaohua_list = []
+                # 从浏览器获取cookie
+                driver.get(url_super_index_vote)
+                cookies = driver.get_cookies()
+                cookie_temp = ""
+                for item in cookies:
+                    if item["name"] in cookie_keys_to_save:
+                        cookie_temp += "{}={};".format(item["name"], item["value"])
+                since_id = ""
+                un_terminal = True
+                while un_terminal:
+                    response_json = get_chaohua_list(cookie_temp, since_id)
+                    cardlist_info = response_json['data']['cardlistInfo']
+                    card_group =[]
+                    for group in response_json['data']['cards']:
+                        group_name=group["card_type_name"]
+                        if group_name=="my_topic_follow_super" or group_name=="my_topic_manage_super":
+                            card_group += group['card_group']
+                    chaohua_list = chaohua_list + resolve(card_group)
+                    if 'since_id' in cardlist_info:
+                        since_id = cardlist_info['since_id']
                     else:
-                        print(u"签到未成功")
-                        error_count += 1
-                except:
-                    print(u"签到异常")
+                        print(u"获取超级话题列表结束...准备开始签到")
+                        break
+                with io.open(filename_chaohua, "w", encoding="utf-8") as fd:
+                    text=json.dumps(chaohua_list, indent=4)
+                    if type(text) == str:
+                        text = text.decode("utf-8")
+                    fd.write(text)
+
+            #每个超话都签到
+            for item in chaohua_list:
+                print("-------------------")
+                print(u"准备签到{}" .format(item['title_sub']))
+                button_sign=None
+                text =""
+                while True:
+                    if error_count > retry_count_max:
+                        error_count = 1
+                        break
                     try:
-                        alert = driver.find_element_by_class_name("W_layer_btn")
-                        if alert:
-                            if u"解除异常" in alert.text:
-                                print(u"签到出现异常")
-                                break
+                        driver.get("https://weibo.com/p/{}/super_index".format(item['containerid']))
+                        time.sleep(5)
+                        button_sign = driver.find_element_by_xpath(xpath_button)
+                        text = button_sign.text
+                        break
                     except NoSuchElementException:
-                        pass
-                    error_count += 1
-            time.sleep(3)
+                        driver.refresh()
+                        time.sleep(10)
+                        error_count += 1
+                if text == u"已签到" or text == "" or button_sign==None:
+                    print(u"跳过{}".format(item['title_sub']))
+                    continue
+                while True:
+                    if error_count > retry_count_max:
+                        error_count = 1
+                        break
+                    try:
+                        print(u"点击")
+                        button_sign.click()
+                        time.sleep(3)
+                        button_sign = driver.find_element_by_xpath(xpath_button)
+                        text = button_sign.text
+                        if text == u"已签到":
+                            print(u"点击成功")
+                            break
+                        else:
+                            print(u"签到未成功")
+                            error_count += 1
+                    except:
+                        print(u"签到异常")
+                        try:
+                            alert = driver.find_element_by_class_name("W_layer_btn")
+                            if alert:
+                                if u"解除异常" in alert.text:
+                                    print(u"签到出现异常")
+                                    break
+                        except NoSuchElementException:
+                            pass
+                        error_count += 1
+                time.sleep(3)
+                print("-------------------")
             print("-------------------")
-        print("-------------------")
 
     # 关闭浏览器进程
     try:
