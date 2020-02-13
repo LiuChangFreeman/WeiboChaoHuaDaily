@@ -1,5 +1,8 @@
 微博超话每日经验25点全收集脚本
 ![](http://static.aikatsucn.cn/images/weibo-chaohua-daily/5.jpg)
+
+使用说明:https://zhuanlan.zhihu.com/p/74287966  
+
 # 适用条件
 1 Windows 7及以上
 
