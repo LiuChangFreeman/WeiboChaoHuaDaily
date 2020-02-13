@@ -20,21 +20,27 @@ daily_vote=True
 #是否每日签到
 daily_sign=True
 
-#每日评论次数，5次得9经验+10积分，8次得9经验+16积分
-comment_count_max=8
+#每日打榜的超话,必须是手机版链接
+url_super_index_vote="https://m.weibo.cn/p/1008082a98366b6a3546bd16e9da0571e34b84/super_index"
+#每日评论的微博,必须是手机版链接
+url_weibo_comment_daily="https://m.weibo.cn/status/4437537546364760"
+
 #失败最大尝试次数
-retry_count_max=8
-#每日签到，签几轮
+retry_count_max=5
+#每日评论，分几轮进行(有时候评论会失败，少量多次)
+daily_comment_count=4
+#每轮评论次数。每日评论总共5次得9经验+10积分，8次得9经验+16积分
+daily_comment_batch=2
+#每日签到，重复签几轮(防止漏签)
 daily_sign_count=3
 
+#以下不要随便改
 chrome_process=None
 chrome_path="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
 chrome_path_x64="C:/Program Files/Google/Chrome/Application/chrome.exe"
 filename_chaohua= "chaohua.json"
 cookie_keys_to_save = ["ALF", "SUBP", "SUB", "SSOLoginState", "SUHB"]
 
-#每日打榜的超话,必须是手机版链接
-url_super_index_vote="https://m.weibo.cn/p/1008082a98366b6a3546bd16e9da0571e34b84/super_index"
 xpath_button="//*[@id=\"Pl_Core_StuffHeader__1\"]/div/div[2]/div/div[3]/div/div[3]/a"
 xpath_tab="//*[@id=\"app\"]/div[1]/div[1]/div[2]/div[2]/div[1]/div/div/div/ul/li[1]/span"
 xpath_vote="//*[@id=\"app\"]/div[1]/div[1]/div[3]/div/div/div[1]/div/div/div/div[3]/div"
@@ -42,8 +48,6 @@ xpath_score="//*[@id=\"app\"]/div/div[1]/div/ul[1]/li[1]"
 xpath_gift="//*[@id=\"app\"]/div/div[2]/div[2]/span[2]"
 xpath_score_count="//*[@id=\"app\"]/div/div[2]/div[1]/span"
 
-#每日五次评论的微博,必须是手机版链接
-url_weibo_comment_daily="https://m.weibo.cn/status/GCR2P5U0X"
 xpath_comment_box="//*[@id=\"app\"]/div[1]/div/div[5]/div/div[1]"
 xpath_textarea="//*[@id=\"app\"]/div[1]/div/div[5]/div/div/div/div[1]/textarea[1]"
 xpath_button_send="//*[@id=\"app\"]/div[1]/div/div[5]/div/div/div/div[2]/button"
@@ -111,30 +115,31 @@ def main():
 
     #每日评论多次
     if daily_comment:
-        driver.get(url_weibo_comment_daily)
-        comment_count=1
-        while True:
-            try:
-                wait.until(lambda driver: driver.find_element_by_xpath(xpath_comment_box).is_displayed())
-                comment_box=driver.find_element_by_xpath(xpath_comment_box)
-                comment_box.click()
-                wait.until(lambda driver: driver.find_element_by_xpath(xpath_textarea).is_displayed())
-                textarea=driver.find_element_by_xpath(xpath_textarea)
-                comment=u"每日评论，第{}次".format(comment_count)
-                textarea.send_keys(comment)
-                print(comment)
-                button_send=driver.find_element_by_xpath(xpath_button_send)
-                button_send.click()
-                time.sleep(5)
-                comment_count+=1
-                if comment_count>comment_count_max:
-                    break
-            except:
-                driver.refresh()
-                error_count += 1
-                if error_count>retry_count_max:
-                    error_count = 1
-                    break
+        for i in range(daily_comment_count):
+            comment_count=1
+            driver.get(url_weibo_comment_daily)
+            while True:
+                try:
+                    wait.until(lambda driver: driver.find_element_by_xpath(xpath_comment_box).is_displayed())
+                    comment_box=driver.find_element_by_xpath(xpath_comment_box)
+                    comment_box.click()
+                    wait.until(lambda driver: driver.find_element_by_xpath(xpath_textarea).is_displayed())
+                    time.sleep(10)
+                    textarea=driver.find_element_by_xpath(xpath_textarea)
+                    comment=u"每日评论，第{}次".format(comment_count+i*daily_comment_batch)
+                    textarea.send_keys(comment)
+                    button_send=driver.find_element_by_xpath(xpath_button_send)
+                    button_send.click()
+                    time.sleep(10)
+                    comment_count+=1
+                    if comment_count>daily_comment_batch:
+                        break
+                except:
+                    driver.refresh()
+                    error_count += 1
+                    if error_count>retry_count_max:
+                        error_count = 1
+                        break
 
     # 每日超话打榜
     if daily_vote:
