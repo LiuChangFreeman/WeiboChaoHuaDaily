@@ -48,9 +48,9 @@ xpath_score="//*[@id=\"app\"]/div/div[1]/div/ul[1]/li[1]"
 xpath_gift="//*[@id=\"app\"]/div/div[2]/div[2]/span[2]"
 xpath_score_count="//*[@id=\"app\"]/div/div[2]/div[1]/span"
 
-xpath_comment_box="//*[@id=\"app\"]/div[1]/div/div[5]/div/div[1]"
-xpath_textarea="//*[@id=\"app\"]/div[1]/div/div[5]/div/div/div/div[1]/textarea[1]"
-xpath_button_send="//*[@id=\"app\"]/div[1]/div/div[5]/div/div/div/div[2]/button"
+xpath_comment_box="//*[@id=\"app\"]/div[1]/div/div[6]/div"
+xpath_textarea="//*[@id=\"app\"]/div[1]/div/div[6]/div/div/div/div[1]/textarea[1]"
+xpath_button_send="//*[@id=\"app\"]/div[1]/div/div[6]/div/div/div/div[2]/button"
 
 def launch_chrome():
     global chrome
